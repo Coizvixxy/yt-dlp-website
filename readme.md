@@ -2,6 +2,8 @@
 
 一個簡單、高效的 YouTube 視頻下載網站，專為車載系統設計。
 
+https://github.com/Coizvixxy/yt-dlp-website/blob/main/screenshot1.png
+
 ## 📖 簡介
 這個項目旨在開發一個輕量級的網站，讓 YouTube 視頻的下載變得簡單又方便。它專門設計用於下載視頻到我的車載系統中播放，提供了友好的用戶界面和高效的下載功能。
 
