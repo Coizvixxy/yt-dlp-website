@@ -29,7 +29,7 @@
 2. 克隆倉庫:
    ```bash
    git clone https://github.com/Coizvixxy/yt-dlp-website.git
-   cd yt-downloader
+   cd yt-dlp-website
    ```
 3. 安裝依賴:
    ```bash
