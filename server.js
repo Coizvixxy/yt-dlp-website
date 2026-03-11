@@ -227,6 +227,7 @@ app.post('/execute', (req, res) => {
             '-f', 'bestaudio',
             '-x', '--audio-format', 'mp3',
             '--audio-quality', '0',
+            '--no-check-certificate',  // 跳過SSL證書驗證
             '--progress',
             '--newline',
             '--no-part',  // 防止部分下载文件
@@ -236,19 +237,14 @@ app.post('/execute', (req, res) => {
             '-o', path.join(downloadsDir, '%(title)s.%(ext)s')  // 简化输出格式
         ];
     } else {
-        // MP4 格式的参数 (使用數組避免特殊字符問題)
+        // MP4 格式的参数 - 使用更可靠的格式选择器，优先下载合并好的文件
         execArgs = [
-            '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',  // 修改格式选择
+            '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',  // 优先下载已合并的文件
             '--merge-output-format', 'mp4',
-            '--concurrent-fragments', '4',
-            '--buffer-size', '16K',
+            '--no-check-certificate',  // 跳過SSL證書驗證
             '--progress',
             '--newline',
-            '--no-part',  // 防止部分下载文件
-            '--downloader', 'aria2c',
-            '--downloader-args', 'aria2c:--max-concurrent-downloads=4 --max-connection-per-server=4 --min-split-size=1M',
-            '--output-na-placeholder', '',  // 避免未知值替换问题
-            '-o', path.join(downloadsDir, '%(title)s.%(ext)s')  // 简化输出格式
+            '-o', path.join(downloadsDir, '%(title)s.%(ext)s')
         ];
     }
     
