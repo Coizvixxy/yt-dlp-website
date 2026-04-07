@@ -243,7 +243,7 @@ app.post('/execute', (req, res) => {
     } else {
         // MP4 格式的参数 - 使用更可靠的格式选择器，优先下载合并好的文件
         execArgs = [
-            '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',  // 优先下载已合并的文件
+            '-f', 'bestvideo[vcodec^=avc]+bestaudio[acodec^=mp4a]/bestvideo[vcodec^=avc]+bestaudio/best[vcodec^=avc]/best',  // 只下載 H.264，確保 iOS 相容
             '--merge-output-format', 'mp4',
             '--no-check-certificate',  // 跳過SSL證書驗證
             '--progress',
