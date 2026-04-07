@@ -203,6 +203,10 @@ app.post('/execute', (req, res) => {
     
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('X-Accel-Buffering', 'no'); // 防止 nginx 等反向代理緩衝
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders(); // 立即發送 headers，避免代理緩衝
 
     // 解析命令並添加優化參數
     const args = command.split(' ')
@@ -363,7 +367,7 @@ app.post('/execute', (req, res) => {
                 downloadedFiles: downloadedFiles.map(file => {
                     // 确保返回完整的URL路径，不带有格式标识符
                     const cleanFileName = file.replace(/\.f\d+\./, '.');
-                    return `/downloads/${cleanFileName}`;
+                    return `/downloads/${encodeURIComponent(cleanFileName)}`;
                 })
             }) + '\n');
             res.end();

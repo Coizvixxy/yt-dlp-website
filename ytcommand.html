@@ -454,8 +454,8 @@
                                 downloadsList.innerHTML = '';
                                 
                                 data.downloadedFiles.forEach(file => {
-                                    // 清理文件路径，确保没有格式标识符
-                                    const cleanFile = file.replace(/\.f\d+\./, '.');
+                                    // 服务器已经 URL 编码了文件名
+                                    const cleanFile = file;
                                     const fileName = decodeURIComponent(cleanFile.split('/').pop());
                                     
                                     const link = document.createElement('a');
