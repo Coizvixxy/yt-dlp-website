@@ -221,6 +221,9 @@ app.post('/execute', (req, res) => {
     let currentLinkIndex = 0;
     let downloadedFiles = [];
 
+    // 記錄下載前的檔案列表，完成後用 filesystem 對比
+    const filesBefore = new Set(fs.readdirSync(downloadsDir));
+
     // 執行命令時使用數組參數而非字符串，避免shell解析問題
     let executable = 'yt-dlp';
     let execArgs = [];
@@ -358,14 +361,22 @@ app.post('/execute', (req, res) => {
             nextYtdlp.on('close', ytdlp.listeners('close')[0]);
             nextYtdlp.on('error', ytdlp.listeners('error')[0]);
         } else {
-            // 所有視頻都下載完成
+            // 所有視頻都下載完成 — 掃描 filesystem 取得新檔案
+            const filesAfter = fs.readdirSync(downloadsDir);
+            const newFiles = filesAfter.filter(f => {
+                if (filesBefore.has(f)) return false;
+                const ext = path.extname(f).toLowerCase();
+                return ext === '.mp4' || ext === '.mp3';
+            });
+
+            const finalFiles = newFiles.length > 0 ? newFiles : downloadedFiles;
+
             res.write(JSON.stringify({
                 status: '所有視頻下載完成',
                 progress: 100,
                 currentVideo: youtubeLinks.length,
                 totalVideos: youtubeLinks.length,
-                downloadedFiles: downloadedFiles.map(file => {
-                    // 确保返回完整的URL路径，不带有格式标识符
+                downloadedFiles: finalFiles.map(file => {
                     const cleanFileName = file.replace(/\.f\d+\./, '.');
                     return `/downloads/${encodeURIComponent(cleanFileName)}`;
                 })
