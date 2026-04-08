@@ -371,15 +371,18 @@ app.post('/execute', (req, res) => {
 
             const finalFiles = newFiles.length > 0 ? newFiles : downloadedFiles;
 
+            // 去重：清理 .f\d+. 後可能出現重複
+            const uniqueUrls = [...new Set(finalFiles.map(file => {
+                const cleanFileName = file.replace(/\.f\d+\./, '.');
+                return `/downloads/${encodeURIComponent(cleanFileName)}`;
+            }))];
+
             res.write(JSON.stringify({
                 status: '所有視頻下載完成',
                 progress: 100,
                 currentVideo: youtubeLinks.length,
                 totalVideos: youtubeLinks.length,
-                downloadedFiles: finalFiles.map(file => {
-                    const cleanFileName = file.replace(/\.f\d+\./, '.');
-                    return `/downloads/${encodeURIComponent(cleanFileName)}`;
-                })
+                downloadedFiles: uniqueUrls
             }) + '\n');
             res.end();
         }
