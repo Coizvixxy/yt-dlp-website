@@ -18,6 +18,13 @@ if (!fs.existsSync(downloadsDir)) {
 // 为下载文件夹提供静态文件服务
 app.use('/downloads', express.static(downloadsDir));
 
+// YouTube 登入 cookies 設定 —— 用來繞過「確認你不是機器人」(Sign in to confirm you're not a bot) 的 bot 偵測。
+// yt-dlp 會從指定瀏覽器讀取「已登入 YouTube」的 cookies。
+// 改成你實際有登入 YouTube 的瀏覽器：chrome / safari / firefox / edge / brave ...
+// 注意：該瀏覽器需先登入 YouTube 一次，且下載時瀏覽器最好處於關閉狀態（避免 cookie 被鎖定）。
+// 設為 null 可停用 cookies。
+const COOKIES_FROM_BROWSER = 'chrome';
+
 // 添加文件清理设置
 const FILE_CLEANUP = {
     enabled: true,              // 是否启用文件清理
@@ -254,7 +261,16 @@ app.post('/execute', (req, res) => {
             '-o', path.join(downloadsDir, '%(title)s.%(ext)s')
         ];
     }
-    
+
+    // 注入瀏覽器 cookies 以繞過 YouTube 的「確認你不是機器人」bot 偵測
+    if (COOKIES_FROM_BROWSER) {
+        execArgs.push('--cookies-from-browser', COOKIES_FROM_BROWSER);
+    }
+
+    // 啟用 EJS 遠端挑戰求解元件：新版 yt-dlp 必須靠它解 YouTube 的 n-challenge（簽章/限流），
+    // 否則只抓得到 storyboard 圖片、拿不到影音格式。首次會從 GitHub 下載求解腳本並快取。
+    execArgs.push('--remote-components', 'ejs:github');
+
     // 添加YouTube链接
     if (youtubeLinks.length > 0) {
         execArgs.push(youtubeLinks[currentLinkIndex]);
