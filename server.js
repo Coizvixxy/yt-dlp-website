@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const fs = require('fs');
 const app = express();
 
@@ -19,11 +19,30 @@ if (!fs.existsSync(downloadsDir)) {
 app.use('/downloads', express.static(downloadsDir));
 
 // YouTube 登入 cookies 設定 —— 用來繞過「確認你不是機器人」(Sign in to confirm you're not a bot) 的 bot 偵測。
-// yt-dlp 會從指定瀏覽器讀取「已登入 YouTube」的 cookies。
-// 改成你實際有登入 YouTube 的瀏覽器：chrome / safari / firefox / edge / brave ...
-// 注意：該瀏覽器需先登入 YouTube 一次，且下載時瀏覽器最好處於關閉狀態（避免 cookie 被鎖定）。
-// 設為 null 可停用 cookies。
-const COOKIES_FROM_BROWSER = 'chrome';
+// 本機開發：預設從 chrome 讀（該瀏覽器需先登入 YouTube，且下載時最好關閉，避免 cookie 被鎖定）。
+// 部署上線：伺服器冇你登入咗 YouTube 嘅瀏覽器，--cookies-from-browser 會直接報錯，請改用：
+//   1) 設 COOKIES_FROM_BROWSER="" 停用；或
+//   2) 用瀏覽器擴充功能（如 "Get cookies.txt LOCALLY"）匯出 cookies.txt，
+//      再設 COOKIES_FILE=/path/to/cookies.txt 指住佢。
+const COOKIES_FROM_BROWSER = process.env.COOKIES_FROM_BROWSER ?? 'chrome';
+const COOKIES_FILE = process.env.COOKIES_FILE || null;
+
+// 偵測此環境的 yt-dlp 是否支援 --remote-components（2025.11.12+ 才有）。
+// 舊版不認得此選項，硬傳會令 yt-dlp 立即報「no such option」退出，故啟動時檢查一次。
+let supportsRemoteComponents = false;
+try {
+    const ytdlpVersion = execFileSync('yt-dlp', ['--version'], { encoding: 'utf8' }).trim();
+    console.log(`[啟動] yt-dlp 版本：${ytdlpVersion}`);
+    supportsRemoteComponents = execFileSync('yt-dlp', ['--help'], { encoding: 'utf8' })
+        .includes('--remote-components');
+} catch (err) {
+    console.warn('[警告] 無法執行 yt-dlp（--version / --help），假設不支援 --remote-components：', err.message);
+}
+if (!supportsRemoteComponents) {
+    console.warn('[警告] 此環境的 yt-dlp 太舊，不支援 --remote-components（需 2025.11.12+）。' +
+        '請更新：yt-dlp -U 或 pip install -U "yt-dlp[default]"，' +
+        '否則 yt-dlp 不會收到 EJS 求解參數，YouTube 下載很大機會被簽章挑戰擋下。');
+}
 
 // 添加文件清理设置
 const FILE_CLEANUP = {
@@ -262,14 +281,20 @@ app.post('/execute', (req, res) => {
         ];
     }
 
-    // 注入瀏覽器 cookies 以繞過 YouTube 的「確認你不是機器人」bot 偵測
-    if (COOKIES_FROM_BROWSER) {
+    // 注入 cookies 以繞過 YouTube 的「確認你不是機器人」bot 偵測：
+    // 優先用 COOKIES_FILE（伺服器部署用 cookies.txt），否則用本機瀏覽器 cookies。
+    if (COOKIES_FILE && fs.existsSync(COOKIES_FILE)) {
+        execArgs.push('--cookies', COOKIES_FILE);
+    } else if (COOKIES_FROM_BROWSER) {
         execArgs.push('--cookies-from-browser', COOKIES_FROM_BROWSER);
     }
 
     // 啟用 EJS 遠端挑戰求解元件：新版 yt-dlp 必須靠它解 YouTube 的 n-challenge（簽章/限流），
     // 否則只抓得到 storyboard 圖片、拿不到影音格式。首次會從 GitHub 下載求解腳本並快取。
-    execArgs.push('--remote-components', 'ejs:github');
+    // 舊版 yt-dlp（< 2025.11.12）不支援此選項，啟動時已偵測，避免直接報錯。
+    if (supportsRemoteComponents) {
+        execArgs.push('--remote-components', 'ejs:github');
+    }
 
     // 添加YouTube链接
     if (youtubeLinks.length > 0) {
