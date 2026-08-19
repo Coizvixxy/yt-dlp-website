@@ -256,6 +256,8 @@ app.post('/execute', (req, res) => {
     
     if (format === 'mp3') {
         // MP3 格式的参数 (使用數組避免特殊字符問題)
+        // 注意：唔好用 aria2c —— googlevideo CDN 會拒絕佢嘅多連接請求（HTTP 403），
+        // yt-dlp 原生下載器先至識得帶正確 headers 同 YouTube CDN 溝通。
         execArgs = [
             '-f', 'bestaudio',
             '-x', '--audio-format', 'mp3',
@@ -264,8 +266,6 @@ app.post('/execute', (req, res) => {
             '--progress',
             '--newline',
             '--no-part',  // 防止部分下载文件
-            '--downloader', 'aria2c',
-            '--downloader-args', 'aria2c:--max-concurrent-downloads=4 --max-connection-per-server=4 --min-split-size=1M',
             '--output-na-placeholder', '',  // 避免未知值替换问题
             '-o', path.join(downloadsDir, '%(title)s.%(ext)s')  // 简化输出格式
         ];
@@ -383,6 +383,11 @@ app.post('/execute', (req, res) => {
     // 當一個視頻下載完成時
     ytdlp.on('close', (code) => {
         currentLinkIndex++;
+
+        // exit code 非 0 = 此視頻下載失敗，記錄落 server log 方便排查
+        if (code !== 0) {
+            console.error(`[下載失敗] 第 ${currentLinkIndex}/${youtubeLinks.length} 個視頻，yt-dlp exit code: ${code}`);
+        }
         
         if (currentLinkIndex < youtubeLinks.length) {
             // 開始下載下一個視頻
@@ -418,13 +423,27 @@ app.post('/execute', (req, res) => {
                 return `/downloads/${encodeURIComponent(cleanFileName)}`;
             }))];
 
-            res.write(JSON.stringify({
-                status: '所有視頻下載完成',
-                progress: 100,
-                currentVideo: youtubeLinks.length,
-                totalVideos: youtubeLinks.length,
-                downloadedFiles: uniqueUrls
-            }) + '\n');
+            // 如實回報：冇產出檔案就係失敗，唔好再報「完成」誤導用戶
+            if (uniqueUrls.length === 0) {
+                res.write(JSON.stringify({
+                    status: code === 0
+                        ? '沒有新下載的檔案（可能已下載過）'
+                        : '下載失敗：yt-dlp 出錯退出，請檢查上方的錯誤訊息',
+                    error: true,
+                    progress: 100,
+                    currentVideo: youtubeLinks.length,
+                    totalVideos: youtubeLinks.length,
+                    downloadedFiles: []
+                }) + '\n');
+            } else {
+                res.write(JSON.stringify({
+                    status: '所有視頻下載完成',
+                    progress: 100,
+                    currentVideo: youtubeLinks.length,
+                    totalVideos: youtubeLinks.length,
+                    downloadedFiles: uniqueUrls
+                }) + '\n');
+            }
             res.end();
         }
     });
