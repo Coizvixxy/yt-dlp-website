@@ -19,13 +19,20 @@ if (!fs.existsSync(downloadsDir)) {
 app.use('/downloads', express.static(downloadsDir));
 
 // YouTube 登入 cookies 設定 —— 用來繞過「確認你不是機器人」(Sign in to confirm you're not a bot) 的 bot 偵測。
-// 本機開發：預設從 chrome 讀（該瀏覽器需先登入 YouTube，且下載時最好關閉，避免 cookie 被鎖定）。
-// 部署上線：伺服器冇你登入咗 YouTube 嘅瀏覽器，--cookies-from-browser 會直接報錯，請改用：
-//   1) 設 COOKIES_FROM_BROWSER="" 停用；或
-//   2) 用瀏覽器擴充功能（如 "Get cookies.txt LOCALLY"）匯出 cookies.txt，
-//      再設 COOKIES_FILE=/path/to/cookies.txt 指住佢。
-const COOKIES_FROM_BROWSER = process.env.COOKIES_FROM_BROWSER ?? 'chrome';
-const COOKIES_FILE = process.env.COOKIES_FILE || null;
+// 【自動載入】伺服器啟動時會自動讀項目資料夾入面嘅 cookies.txt（同 server.js 同一層）。
+// 只需要做一次：用瀏覽器擴充功能 "Get cookies.txt LOCALLY" 匯出，將檔案改名做 cookies.txt
+// 放喺呢個資料夾，以後開 server 唔使再 export 任何環境變數。
+// （cookies.txt 等如你嘅 YouTube 登入憑證：唔好 commit 上 git、唔好分享俾人）
+// 進階覆寫：COOKIES_FILE 環境變數可指定其他路徑；COOKIES_FROM_BROWSER 可改用瀏覽器 cookies。
+const COOKIES_FILE = process.env.COOKIES_FILE || path.join(__dirname, 'cookies.txt');
+const COOKIES_FROM_BROWSER = process.env.COOKIES_FROM_BROWSER ?? 'chrome'; // cookies.txt 唔存在時先會用到
+
+// 畫質設定 ——
+// true（預設）：優先 H.264（avc）+ mp4 —— 任何播放器、iPhone、電視都播到，
+//              但 YouTube 嘅 H.264 最高只去到 1080p，有 4K 嘅片都只會攞 1080p。
+// false：唔理 codec，攞條片嘅最高畫質（4K/8K 通常係 VP9 或 AV1）+ 最佳音頻，容器改用 mkv。
+//        畫質最高，但 QuickTime/iPhone 原生播放器好可能播唔到（VLC、IINA、mpv 就冇問題）。
+const PREFER_H264 = true;
 
 // 偵測此環境的 yt-dlp 是否支援 --remote-components（2025.11.12+ 才有）。
 // 舊版不認得此選項，硬傳會令 yt-dlp 立即報「no such option」退出，故啟動時檢查一次。
@@ -42,6 +49,14 @@ if (!supportsRemoteComponents) {
     console.warn('[警告] 此環境的 yt-dlp 太舊，不支援 --remote-components（需 2025.11.12+）。' +
         '請更新：yt-dlp -U 或 pip install -U "yt-dlp[default]"，' +
         '否則 yt-dlp 不會收到 EJS 求解參數，YouTube 下載很大機會被簽章挑戰擋下。');
+}
+
+// 啟動時報告 cookies 來源，確認自動載入有冇生效
+if (fs.existsSync(COOKIES_FILE)) {
+    console.log(`[啟動] 已自動載入 cookies 檔案：${COOKIES_FILE}`);
+} else {
+    console.warn(`[啟動] 揾唔到 ${path.basename(COOKIES_FILE)}，將會嘗試瀏覽器 cookies` +
+        `（${COOKIES_FROM_BROWSER || '已停用'}）——喺伺服器上通常會失敗，建議放一個 cookies.txt 喺項目資料夾。`);
 }
 
 // 添加文件清理设置
@@ -270,10 +285,12 @@ app.post('/execute', (req, res) => {
             '-o', path.join(downloadsDir, '%(title)s.%(ext)s')  // 简化输出格式
         ];
     } else {
-        // MP4 格式的参数 - 使用更可靠的格式选择器，优先下载合并好的文件
+        // MP4 格式的参数 - 畫質策略由上方 PREFER_H264 控制
         execArgs = [
-            '-f', 'bv*[vcodec^=avc]+ba/b[vcodec^=avc]/bv+ba/b',  // 優先 H.264，fallback 確保一定有畫面
-            '--merge-output-format', 'mp4',
+            '-f', PREFER_H264
+                ? 'bv*[vcodec^=avc]+ba/b[vcodec^=avc]/bv+ba/b'  // 最佳 H.264（上限 1080p）+ 最佳音頻
+                : 'bv*+ba/b',                                     // 條片最高畫質（4K/8K 係 VP9/AV1）
+            '--merge-output-format', PREFER_H264 ? 'mp4' : 'mkv',
             '--no-check-certificate',
             '--progress',
             '--newline',
@@ -371,8 +388,11 @@ app.post('/execute', (req, res) => {
 
     ytdlp.stderr.on('data', (data) => {
         try {
+            const errText = data.toString().trim();
+            // 同步輸出埋落 server console，方便 SSH 排查（唔使淨係靠網頁睇）
+            console.error('[yt-dlp]', errText);
             const response = {
-                status: `錯誤: ${data.toString().trim()}`
+                status: `錯誤: ${errText}`
             };
             res.write(JSON.stringify(response) + '\n');
         } catch (error) {
