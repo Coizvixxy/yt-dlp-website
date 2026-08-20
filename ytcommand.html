@@ -225,7 +225,7 @@
             }
         }
         
-        /* 文件管理器样式 */
+        /* 文件管理器樣式 */
         .file-manager-section {
             background: white;
             padding: 20px;
@@ -300,15 +300,15 @@
             
             <div class="format-selector">
                 <label>
-                    <input type="radio" name="format" value="mp4" checked> MP4 视频
+                    <input type="radio" name="format" value="mp4" checked> MP4 視頻
                 </label>
                 <label>
-                    <input type="radio" name="format" value="mp3"> MP3 音频
+                    <input type="radio" name="format" value="mp3"> MP3 音頻
                 </label>
             </div>
             
             <div class="button-group">
-                <button class="btn-execute" onclick="executeDownload()">开始下载</button>
+                <button class="btn-execute" onclick="executeDownload()">開始下載</button>
                 <button class="btn-clear" onclick="clearAll()">清空全部</button>
             </div>
         </div>
@@ -330,10 +330,10 @@
             <h3>文件管理</h3>
             <div class="button-group" style="margin-bottom: 10px;">
                 <button class="btn-reload" onclick="loadFileList()">刷新文件列表</button>
-                <button class="btn-clear" onclick="deleteOldFiles()">清理旧文件</button>
+                <button class="btn-clear" onclick="deleteOldFiles()">清理舊文件</button>
             </div>
             <div class="file-manager-list" id="fileManagerList">
-                <!-- 文件列表将在这里显示 -->
+                <!-- 文件列表將在這裏顯示 -->
             </div>
         </div>
     </div>
@@ -361,7 +361,7 @@
             downloadsSection.style.display = 'none';
             downloadsList.innerHTML = '';
             
-            // 添加初始载入动画
+            // 添加初始載入動畫
             statusText.innerHTML = `
                 <div class="status-line loading">
                     <div class="loading-animation"></div>
@@ -369,13 +369,13 @@
                 </div>
             `;
 
-            // 记录开始下载时间（用于调试）
-            console.log('开始下载请求:', new Date().toISOString());
+            // 記錄開始下載時間（用於調試）
+            console.log('開始下載請求:', new Date().toISOString());
             console.log('格式:', format);
-            console.log('链接数量:', links.length);
+            console.log('鏈接數量:', links.length);
 
             try {
-                // 确保使用正确的URL（不包含 http://localhost）
+                // 確保使用正確的URL（不包含 http://localhost）
                 const response = await fetch('./execute', {
                     method: 'POST',
                     headers: {
@@ -387,7 +387,7 @@
                     }),
                 });
 
-                console.log('收到响应:', response.status, response.statusText);
+                console.log('收到響應:', response.status, response.statusText);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error: ${response.status}`);
@@ -400,12 +400,12 @@
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) {
-                        console.log('数据流已完成');
+                        console.log('數據流已完成');
                         break;
                     }
                     
                     const text = decoder.decode(value, { stream: true });
-                    console.log('收到数据块:', text.length, '字节');
+                    console.log('收到數據塊:', text.length, '字節');
                     
                     buffer += text;
                     const lines = buffer.split('\n');
@@ -416,7 +416,7 @@
                         
                         try {
                             const data = JSON.parse(line);
-                            console.log('解析数据:', data);
+                            console.log('解析數據:', data);
                             
                             if (data.progress != null) {
                                 const totalProgress = ((data.currentVideo - 1) * 100 + data.progress) / data.totalVideos;
@@ -425,9 +425,9 @@
                             
                             if (data.status) {
                                 const progressInfo = data.currentVideo && data.totalVideos ? 
-                                    `[视频 ${data.currentVideo}/${data.totalVideos}] ` : '';
+                                    `[視頻 ${data.currentVideo}/${data.totalVideos}] ` : '';
                                 
-                                // 添加新的状态行，带有载入动画
+                                // 添加新的狀態行，帶有載入動畫
                                 const newLine = document.createElement('div');
                                 newLine.className = 'status-line';
                                 if (data.progress !== 100) {
@@ -447,23 +447,23 @@
                                 statusText.scrollTop = statusText.scrollHeight;
                             }
                             
-                            // 处理下载完成的文件
+                            // 處理下載完成的文件
                             if (data.downloadedFiles && data.downloadedFiles.length > 0) {
-                                console.log('下载完成的文件:', data.downloadedFiles);
+                                console.log('下載完成的文件:', data.downloadedFiles);
                                 downloadsSection.style.display = 'block';
                                 downloadsList.innerHTML = '';
                                 
                                 data.downloadedFiles.forEach(file => {
-                                    // 服务器已经 URL 编码了文件名
+                                    // 服務器已經 URL 編碼了文件名
                                     const cleanFile = file;
                                     const fileName = decodeURIComponent(cleanFile.split('/').pop());
                                     
                                     const link = document.createElement('a');
                                     link.href = cleanFile;
-                                    link.setAttribute('download', ''); // 确保触发下载而不是预览
+                                    link.setAttribute('download', ''); // 確保觸發下載而不是預覽
                                     
-                                    // 根据文件类型设置不同的图标和样式
-                                    const fileType = fileName.endsWith('.mp3') ? 'MP3 音频' : 'MP4 视频';
+                                    // 根據文件類型設置不同的圖標和樣式
+                                    const fileType = fileName.endsWith('.mp3') ? 'MP3 音頻' : 'MP4 視頻';
                                     const fileIcon = fileName.endsWith('.mp3') ? '🎵' : '🎬';
                                     
                                     link.innerHTML = `
@@ -471,16 +471,16 @@
                                             <span style="font-size: 24px; margin-right: 10px;">${fileIcon}</span>
                                             <div>
                                                 <div style="font-weight: bold;">${fileName}</div>
-                                                <div style="color: #666; font-size: 12px;">${fileType} - 点击下载</div>
+                                                <div style="color: #666; font-size: 12px;">${fileType} - 點擊下載</div>
                                             </div>
                                         </div>
                                     `;
                                     
-                                    // 添加直接下载功能
+                                    // 添加直接下載功能
                                     link.addEventListener('click', function(e) {
                                         e.preventDefault();
                                         
-                                        // 使用fetch API加上download参数来确保下载
+                                        // 使用fetch API加上download參數來確保下載
                                         fetch(this.href + '?download=1', {
                                             method: 'GET',
                                             headers: {
@@ -489,7 +489,7 @@
                                         })
                                         .then(response => response.blob())
                                         .then(blob => {
-                                            // 创建一个带有blob URL的隐藏下载链接
+                                            // 創建一個帶有blob URL的隱藏下載鏈接
                                             const url = window.URL.createObjectURL(blob);
                                             const a = document.createElement('a');
                                             a.style.display = 'none';
@@ -500,46 +500,46 @@
                                             window.URL.revokeObjectURL(url);
                                             document.body.removeChild(a);
                                             
-                                            // 显示下载开始消息
-                                            showAlarm(`开始下载: ${fileName}`);
+                                            // 顯示下載開始消息
+                                            showAlarm(`開始下載: ${fileName}`);
                                         })
                                         .catch(error => {
-                                            console.error('下载失败:', error);
-                                            showAlarm('下载失败，请重试');
+                                            console.error('下載失敗:', error);
+                                            showAlarm('下載失敗，請重試');
                                         });
                                     });
                                     
                                     downloadsList.appendChild(link);
                                 });
                                 
-                                // 添加"全部下载"按钮
+                                // 添加"全部下載"按鈕
                                 if (data.downloadedFiles.length > 1) {
                                     const downloadAllBtn = document.createElement('button');
-                                    downloadAllBtn.textContent = `下载全部 ${data.downloadedFiles.length} 个文件`;
+                                    downloadAllBtn.textContent = `下載全部 ${data.downloadedFiles.length} 個文件`;
                                     downloadAllBtn.className = 'btn-execute';
                                     downloadAllBtn.style.width = '100%';
                                     downloadAllBtn.style.marginTop = '15px';
                                     
                                     downloadAllBtn.onclick = function() {
-                                        // 依次触发每个文件的下载
+                                        // 依次觸發每個文件的下載
                                         const links = downloadsList.querySelectorAll('a');
                                         links.forEach((link, index) => {
                                             setTimeout(() => {
-                                                link.click(); // 现在会触发我们修改过的下载逻辑
-                                            }, index * 800); // 增加间隔时间，避免浏览器阻止
+                                                link.click(); // 現在會觸發我們修改過的下載邏輯
+                                            }, index * 800); // 增加間隔時間，避免瀏覽器阻止
                                         });
                                     };
                                     
                                     downloadsList.appendChild(downloadAllBtn);
                                 }
                                 
-                                // 自动滚动到下载区域
+                                // 自動滾動到下載區域
                                 downloadsSection.scrollIntoView({ behavior: 'smooth' });
                             }
                             
                             if (data.error) {
                                 showAlarm('下載過程中發生錯誤');
-                                console.error('服务器报告错误:', data);
+                                console.error('服務器報告錯誤:', data);
                             }
                         } catch (e) {
                             console.error('Error parsing line:', line, e);
@@ -547,7 +547,7 @@
                     }
                 }
 
-                showAlarm('所有视频下载完成！');
+                showAlarm('所有視頻下載完成！');
             } catch (error) {
                 console.error('Download error:', error);
                 showAlarm('下載過程中發生錯誤: ' + error.message);
@@ -579,36 +579,36 @@
             }, duration);
         }
 
-        // 修改貼上事件处理
+        // 修改貼上事件處理
         document.getElementById('inputLinks').addEventListener('paste', (e) => {
-            // 阻止默认貼上行为
+            // 阻止默認貼上行爲
             e.preventDefault();
             
-            // 获取剪贴板数据
+            // 獲取剪貼板數據
             const clipboardData = e.clipboardData || window.clipboardData;
             let pastedText = clipboardData.getData('text');
             
-            // 处理貼上的文本
+            // 處理貼上的文本
             pastedText = pastedText
-                // 将所有空白行替换为单个换行
+                // 將所有空白行替換爲單個換行
                 .replace(/[\r\n]+/g, '\n')
-                // 移除每行开头和结尾的空白
+                // 移除每行開頭和結尾的空白
                 .split('\n')
                 .map(line => line.trim())
-                // 过滤掉空行
+                // 過濾掉空行
                 .filter(line => line)
                 .join('\n');
 
-            // 获取当前选中位置
+            // 獲取當前選中位置
             const textarea = document.getElementById('inputLinks');
             const startPos = textarea.selectionStart;
             const endPos = textarea.selectionEnd;
             
-            // 组合新的文本内容
+            // 組合新的文本內容
             const textBefore = textarea.value.substring(0, startPos);
             const textAfter = textarea.value.substring(endPos);
             
-            // 确保貼上的内容前后有换行（如果需要）
+            // 確保貼上的內容前後有換行（如果需要）
             const needNewlineBefore = textBefore && !textBefore.endsWith('\n');
             const needNewlineAfter = textAfter && !textAfter.startsWith('\n');
             
@@ -618,22 +618,22 @@
                            (needNewlineAfter ? '\n' : '') + 
                            textAfter;
             
-            // 更新文本框内容
+            // 更新文本框內容
             textarea.value = newText;
             
-            // 设置新的光标位置
+            // 設置新的光標位置
             const newCursorPos = startPos + pastedText.length + 
                                 (needNewlineBefore ? 1 : 0);
             textarea.setSelectionRange(newCursorPos, newCursorPos);
         });
 
-        // 加载文件列表
+        // 加載文件列表
         async function loadFileList() {
             const fileManagerSection = document.getElementById('fileManagerSection');
             const fileManagerList = document.getElementById('fileManagerList');
             
             fileManagerSection.style.display = 'block';
-            fileManagerList.innerHTML = '<div class="loading-text">加载文件列表中...</div>';
+            fileManagerList.innerHTML = '<div class="loading-text">加載文件列表中...</div>';
             
             try {
                 const response = await fetch('./files');
@@ -644,27 +644,27 @@
                 const files = await response.json();
                 
                 if (files.length === 0) {
-                    fileManagerList.innerHTML = '<div class="empty-list">没有找到文件</div>';
+                    fileManagerList.innerHTML = '<div class="empty-list">沒有找到文件</div>';
                     return;
                 }
                 
                 fileManagerList.innerHTML = '';
                 
-                // 计算总大小
+                // 計算總大小
                 const totalSize = files.reduce((sum, file) => sum + file.size, 0);
                 const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
                 
-                // 添加统计信息
+                // 添加統計信息
                 const statsDiv = document.createElement('div');
                 statsDiv.className = 'files-stats';
-                statsDiv.innerHTML = `文件总数: ${files.length} | 总大小: ${totalSizeMB} MB`;
+                statsDiv.innerHTML = `文件總數: ${files.length} | 總大小: ${totalSizeMB} MB`;
                 fileManagerList.appendChild(statsDiv);
                 
-                // 创建文件表格
+                // 創建文件表格
                 const table = document.createElement('table');
                 table.className = 'files-table';
                 
-                // 表头
+                // 表頭
                 const thead = document.createElement('thead');
                 thead.innerHTML = `
                     <tr>
@@ -676,7 +676,7 @@
                 `;
                 table.appendChild(thead);
                 
-                // 表体
+                // 表體
                 const tbody = document.createElement('tbody');
                 files.forEach(file => {
                     const tr = document.createElement('tr');
@@ -689,8 +689,8 @@
                         <td>${sizeMB} MB</td>
                         <td>${date}</td>
                         <td>
-                            <button class="btn-small btn-download" data-file="${file.name}">下载</button>
-                            <button class="btn-small btn-delete" data-file="${file.name}">删除</button>
+                            <button class="btn-small btn-download" data-file="${file.name}">下載</button>
+                            <button class="btn-small btn-delete" data-file="${file.name}">刪除</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -699,7 +699,7 @@
                 
                 fileManagerList.appendChild(table);
                 
-                // 添加事件监听器
+                // 添加事件監聽器
                 document.querySelectorAll('.btn-download').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const fileName = this.getAttribute('data-file');
@@ -715,12 +715,12 @@
                 });
                 
             } catch (error) {
-                console.error('加载文件列表失败:', error);
-                fileManagerList.innerHTML = `<div class="error-text">加载失败: ${error.message}</div>`;
+                console.error('加載文件列表失敗:', error);
+                fileManagerList.innerHTML = `<div class="error-text">加載失敗: ${error.message}</div>`;
             }
         }
         
-        // 下载文件
+        // 下載文件
         function downloadFile(fileName) {
             const url = `/downloads/${encodeURIComponent(fileName)}?download=1`;
             
@@ -742,17 +742,17 @@
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 
-                showAlarm(`开始下载: ${fileName}`);
+                showAlarm(`開始下載: ${fileName}`);
             })
             .catch(error => {
-                console.error('下载失败:', error);
-                showAlarm('下载失败，请重试');
+                console.error('下載失敗:', error);
+                showAlarm('下載失敗，請重試');
             });
         }
         
-        // 删除文件
+        // 刪除文件
         async function deleteFile(fileName) {
-            if (!confirm(`确定要删除 ${fileName} 吗?`)) {
+            if (!confirm(`確定要刪除 ${fileName} 嗎?`)) {
                 return;
             }
             
@@ -765,17 +765,17 @@
                     throw new Error(`HTTP error: ${response.status}`);
                 }
                 
-                showAlarm(`已删除: ${fileName}`);
+                showAlarm(`已刪除: ${fileName}`);
                 loadFileList(); // 刷新文件列表
             } catch (error) {
-                console.error('删除失败:', error);
-                showAlarm(`删除失败: ${error.message}`);
+                console.error('刪除失敗:', error);
+                showAlarm(`刪除失敗: ${error.message}`);
             }
         }
         
-        // 清理旧文件
+        // 清理舊文件
         async function deleteOldFiles() {
-            if (!confirm('确定要清理所有旧文件吗? 这将删除超过72小时的文件。')) {
+            if (!confirm('確定要清理所有舊文件嗎? 這將刪除超過72小時的文件。')) {
                 return;
             }
             
@@ -789,11 +789,11 @@
                 }
                 
                 const result = await response.json();
-                showAlarm(`清理完成: 删除了${result.filesRemoved}个文件，释放了${result.spaceFreedMB}MB空间`);
+                showAlarm(`清理完成: 刪除了${result.filesRemoved}個文件，釋放了${result.spaceFreedMB}MB空間`);
                 loadFileList(); // 刷新文件列表
             } catch (error) {
-                console.error('清理失败:', error);
-                showAlarm(`清理失败: ${error.message}`);
+                console.error('清理失敗:', error);
+                showAlarm(`清理失敗: ${error.message}`);
             }
         }
     </script>

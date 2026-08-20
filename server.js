@@ -9,13 +9,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname))); // 添加靜態文件服務
 
-// 创建下载文件夹（如果不存在）
+// 創建下載文件夾（如果不存在）
 const downloadsDir = path.join(__dirname, 'downloads');
 if (!fs.existsSync(downloadsDir)) {
     fs.mkdirSync(downloadsDir);
 }
 
-// 为下载文件夹提供静态文件服务
+// 爲下載文件夾提供靜態文件服務
 app.use('/downloads', express.static(downloadsDir));
 
 // YouTube 登入 cookies 設定 —— 用來繞過「確認你不是機器人」(Sign in to confirm you're not a bot) 的 bot 偵測。
@@ -34,7 +34,7 @@ const COOKIES_FROM_BROWSER = process.env.COOKIES_FROM_BROWSER ?? 'chrome'; // co
 //        畫質最高，但 QuickTime/iPhone 原生播放器好可能播唔到（VLC、IINA、mpv 就冇問題）。
 const PREFER_H264 = true;
 
-// 偵測此環境的 yt-dlp 是否支援 --remote-components（2025.11.12+ 才有）。
+// 偵測此環境的 yt-dlp 是否支援 --remote-components（2025.11.12+ 纔有）。
 // 舊版不認得此選項，硬傳會令 yt-dlp 立即報「no such option」退出，故啟動時檢查一次。
 let supportsRemoteComponents = false;
 try {
@@ -55,78 +55,78 @@ if (!supportsRemoteComponents) {
 if (fs.existsSync(COOKIES_FILE)) {
     console.log(`[啟動] 已自動載入 cookies 檔案：${COOKIES_FILE}`);
 } else {
-    console.warn(`[啟動] 揾唔到 ${path.basename(COOKIES_FILE)}，將會嘗試瀏覽器 cookies` +
+    console.warn(`[啟動] 搵唔到 ${path.basename(COOKIES_FILE)}，將會嘗試瀏覽器 cookies` +
         `（${COOKIES_FROM_BROWSER || '已停用'}）——喺伺服器上通常會失敗，建議放一個 cookies.txt 喺項目資料夾。`);
 }
 
-// 添加文件清理设置
+// 添加文件清理設置
 const FILE_CLEANUP = {
-    enabled: true,              // 是否启用文件清理
-    intervalHours: 24,          // 清理间隔（小时）
-    maxAgeHours: 72,            // 文件最大保留时间（小时）
-    minSpaceGB: 1,              // 最小保留磁盘空间（GB）
-    excludePattern: null        // 排除的文件模式（正则表达式）
+    enabled: true,              // 是否啓用文件清理
+    intervalHours: 24,          // 清理間隔（小時）
+    maxAgeHours: 72,            // 文件最大保留時間（小時）
+    minSpaceGB: 1,              // 最小保留磁盤空間（GB）
+    excludePattern: null        // 排除的文件模式（正則表達式）
 };
 
-// 文件清理函数
+// 文件清理函數
 function cleanupDownloads() {
     if (!FILE_CLEANUP.enabled) return;
     
-    console.log(`[${new Date().toISOString()}] 开始清理下载目录...`);
+    console.log(`[${new Date().toISOString()}] 開始清理下載目錄...`);
     
-    // 当前时间
+    // 當前時間
     const now = new Date().getTime();
-    // 最大文件年龄（毫秒）
+    // 最大文件年齡（毫秒）
     const maxAge = FILE_CLEANUP.maxAgeHours * 60 * 60 * 1000;
     let filesRemoved = 0;
     let spaceFreed = 0;
     
     try {
-        // 获取下载目录中的所有文件
+        // 獲取下載目錄中的所有文件
         const files = fs.readdirSync(downloadsDir);
         
         files.forEach(file => {
             const filePath = path.join(downloadsDir, file);
             
-            // 跳过目录
+            // 跳過目錄
             if (fs.statSync(filePath).isDirectory()) return;
             
-            // 检查排除模式
+            // 檢查排除模式
             if (FILE_CLEANUP.excludePattern && FILE_CLEANUP.excludePattern.test(file)) {
                 console.log(`[清理] 排除文件: ${file}`);
                 return;
             }
             
-            // 获取文件状态
+            // 獲取文件狀態
             const stats = fs.statSync(filePath);
             const fileAge = now - stats.mtimeMs;
             
-            // 检查文件年龄
+            // 檢查文件年齡
             if (fileAge > maxAge) {
                 const fileSizeMB = stats.size / (1024 * 1024);
-                console.log(`[清理] 删除过期文件: ${file} (${fileSizeMB.toFixed(2)}MB, 年龄: ${(fileAge/(1000*60*60)).toFixed(1)}小时)`);
+                console.log(`[清理] 刪除過期文件: ${file} (${fileSizeMB.toFixed(2)}MB, 年齡: ${(fileAge/(1000*60*60)).toFixed(1)}小時)`);
                 
                 try {
                     fs.unlinkSync(filePath);
                     filesRemoved++;
                     spaceFreed += stats.size;
                 } catch (err) {
-                    console.error(`[清理] 删除文件失败: ${file}`, err);
+                    console.error(`[清理] 刪除文件失敗: ${file}`, err);
                 }
             }
         });
         
         const spaceFreedMB = spaceFreed / (1024 * 1024);
-        console.log(`[清理] 完成: 删除了${filesRemoved}个文件, 释放了${spaceFreedMB.toFixed(2)}MB空间`);
+        console.log(`[清理] 完成: 刪除了${filesRemoved}個文件, 釋放了${spaceFreedMB.toFixed(2)}MB空間`);
     } catch (err) {
-        console.error('[清理] 错误:', err);
+        console.error('[清理] 錯誤:', err);
     }
 }
 
-// 获取磁盘空间信息（仅限 Linux/Mac）
+// 獲取磁盤空間信息（僅限 Linux/Mac）
 function checkDiskSpace() {
     return new Promise((resolve, reject) => {
-        // 使用df命令获取磁盘空间信息
+        // 使用df命令獲取磁盤空間信息
         const df = spawn('df', ['-h', downloadsDir]);
         let output = '';
         
@@ -141,12 +141,12 @@ function checkDiskSpace() {
         df.on('close', (code) => {
             if (code !== 0) {
                 console.warn(`df process exited with code ${code}`);
-                resolve(null); // 无法获取空间信息
+                resolve(null); // 無法獲取空間信息
                 return;
             }
             
             try {
-                // 解析输出
+                // 解析輸出
                 const lines = output.trim().split('\n');
                 if (lines.length < 2) {
                     resolve(null);
@@ -154,7 +154,7 @@ function checkDiskSpace() {
                 }
                 
                 const parts = lines[1].split(/\s+/);
-                // df输出格式: Filesystem Size Used Avail Use% Mounted on
+                // df輸出格式: Filesystem Size Used Avail Use% Mounted on
                 const available = parts[3];
                 let availableGB = 0;
                 
@@ -175,11 +175,11 @@ function checkDiskSpace() {
     });
 }
 
-// 紧急清理（当磁盘空间不足时）
+// 緊急清理（當磁盤空間不足時）
 async function emergencyCleanup() {
-    // 检查是否是Windows（不支持df命令）
+    // 檢查是否是Windows（不支持df命令）
     if (process.platform === 'win32') {
-        console.log('[清理] Windows系统跳过磁盘空间检查');
+        console.log('[清理] Windows系統跳過磁盤空間檢查');
         return;
     }
     
@@ -188,22 +188,22 @@ async function emergencyCleanup() {
         if (!space) return;
         
         if (space.availableGB < FILE_CLEANUP.minSpaceGB) {
-            console.warn(`[清理] 磁盘空间不足! 可用: ${space.availableGB.toFixed(2)}GB, 最小要求: ${FILE_CLEANUP.minSpaceGB}GB`);
+            console.warn(`[清理] 磁盤空間不足! 可用: ${space.availableGB.toFixed(2)}GB, 最小要求: ${FILE_CLEANUP.minSpaceGB}GB`);
             
-            // 获取所有文件并按修改时间排序
+            // 獲取所有文件並按修改時間排序
             const files = fs.readdirSync(downloadsDir)
                 .map(file => {
                     const filePath = path.join(downloadsDir, file);
                     const stats = fs.statSync(filePath);
                     return { name: file, path: filePath, mtime: stats.mtime, size: stats.size };
                 })
-                .filter(file => !fs.statSync(file.path).isDirectory()) // 排除目录
-                .sort((a, b) => a.mtime - b.mtime); // 按修改时间从旧到新排序
+                .filter(file => !fs.statSync(file.path).isDirectory()) // 排除目錄
+                .sort((a, b) => a.mtime - b.mtime); // 按修改時間從舊到新排序
             
             let freedSpace = 0;
             let filesRemoved = 0;
             
-            // 删除旧文件直到释放足够空间
+            // 刪除舊文件直到釋放足夠空間
             for (const file of files) {
                 if (space.availableGB + (freedSpace / (1024 * 1024 * 1024)) >= FILE_CLEANUP.minSpaceGB) {
                     break;
@@ -213,34 +213,34 @@ async function emergencyCleanup() {
                     fs.unlinkSync(file.path);
                     freedSpace += file.size;
                     filesRemoved++;
-                    console.log(`[紧急清理] 删除文件: ${file.name} (${(file.size/(1024*1024)).toFixed(2)}MB)`);
+                    console.log(`[緊急清理] 刪除文件: ${file.name} (${(file.size/(1024*1024)).toFixed(2)}MB)`);
                 } catch (err) {
-                    console.error(`[紧急清理] 删除文件失败: ${file.name}`, err);
+                    console.error(`[緊急清理] 刪除文件失敗: ${file.name}`, err);
                 }
             }
             
-            console.log(`[紧急清理] 完成: 删除了${filesRemoved}个文件, 释放了${(freedSpace/(1024*1024)).toFixed(2)}MB空间`);
+            console.log(`[緊急清理] 完成: 刪除了${filesRemoved}個文件, 釋放了${(freedSpace/(1024*1024)).toFixed(2)}MB空間`);
         }
     } catch (err) {
-        console.error('[紧急清理] 错误:', err);
+        console.error('[緊急清理] 錯誤:', err);
     }
 }
 
-// 设置定时清理
-const cleanupIntervalMs = FILE_CLEANUP.intervalHours * 60 * 60 * 1000; // 转换为毫秒
+// 設置定時清理
+const cleanupIntervalMs = FILE_CLEANUP.intervalHours * 60 * 60 * 1000; // 轉換爲毫秒
 setInterval(async () => {
-    await emergencyCleanup(); // 首先检查是否需要紧急清理
-    cleanupDownloads();       // 然后执行常规清理
+    await emergencyCleanup(); // 首先檢查是否需要緊急清理
+    cleanupDownloads();       // 然後執行常規清理
 }, cleanupIntervalMs);
 
-// 服务器启动时也执行一次清理
+// 服務器啓動時也執行一次清理
 setTimeout(async () => {
     await emergencyCleanup();
     cleanupDownloads();
-}, 5000); // 延迟5秒后执行，确保服务器已完全启动
+}, 5000); // 延遲5秒後執行，確保服務器已完全啓動
 
 app.post('/execute', (req, res) => {
-    const { command, format = 'mp4' } = req.body; // 添加格式参数，默认为mp4
+    const { command, format = 'mp4' } = req.body; // 添加格式參數，默認爲mp4
     
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Transfer-Encoding', 'chunked');
@@ -270,7 +270,7 @@ app.post('/execute', (req, res) => {
     let execArgs = [];
     
     if (format === 'mp3') {
-        // MP3 格式的参数 (使用數組避免特殊字符問題)
+        // MP3 格式的參數 (使用數組避免特殊字符問題)
         // 注意：唔好用 aria2c —— googlevideo CDN 會拒絕佢嘅多連接請求（HTTP 403），
         // yt-dlp 原生下載器先至識得帶正確 headers 同 YouTube CDN 溝通。
         execArgs = [
@@ -280,12 +280,12 @@ app.post('/execute', (req, res) => {
             '--no-check-certificate',  // 跳過SSL證書驗證
             '--progress',
             '--newline',
-            '--no-part',  // 防止部分下载文件
-            '--output-na-placeholder', '',  // 避免未知值替换问题
-            '-o', path.join(downloadsDir, '%(title)s.%(ext)s')  // 简化输出格式
+            '--no-part',  // 防止部分下載文件
+            '--output-na-placeholder', '',  // 避免未知值替換問題
+            '-o', path.join(downloadsDir, '%(title)s.%(ext)s')  // 簡化輸出格式
         ];
     } else {
-        // MP4 格式的参数 - 畫質策略由上方 PREFER_H264 控制
+        // MP4 格式的參數 - 畫質策略由上方 PREFER_H264 控制
         execArgs = [
             '-f', PREFER_H264
                 ? 'bv*[vcodec^=avc]+ba/b[vcodec^=avc]/bv+ba/b'  // 最佳 H.264（上限 1080p）+ 最佳音頻
@@ -313,12 +313,12 @@ app.post('/execute', (req, res) => {
         execArgs.push('--remote-components', 'ejs:github');
     }
 
-    // 添加YouTube链接
+    // 添加YouTube鏈接
     if (youtubeLinks.length > 0) {
         execArgs.push(youtubeLinks[currentLinkIndex]);
     }
 
-    // 使用spawn执行命令，不使用shell选项
+    // 使用spawn執行命令，不使用shell選項
     const ytdlp = spawn(executable, execArgs, { 
         env: {
             ...process.env,
@@ -326,37 +326,37 @@ app.post('/execute', (req, res) => {
         }
     });
 
-    // 处理输出并捕获文件名
+    // 處理輸出並捕獲文件名
     ytdlp.stdout.on('data', (data) => {
         const output = data.toString();
         
         try {
-            // 解析进度
+            // 解析進度
             const progressMatch = output.match(/(\d+\.?\d*)%/);
             
-            // 更精确的文件名匹配，避免重复捕获
+            // 更精確的文件名匹配，避免重複捕獲
             let fileName = null;
             
-            // 合并格式时的消息
+            // 合併格式時的消息
             const mergerMatch = output.match(/\[Merger\] Merging formats into "(.+?)"/);
             if (mergerMatch) {
                 fileName = path.basename(mergerMatch[1].trim());
             }
-            // 提取音频时的消息
+            // 提取音頻時的消息
             else if (!fileName) {
                 const extractMatch = output.match(/\[ExtractAudio\] Destination: (.+)/);
                 if (extractMatch) {
                     fileName = path.basename(extractMatch[1].trim());
                 }
             }
-            // 已下载文件的消息
+            // 已下載文件的消息
             else if (!fileName) {
                 const alreadyDownloadedMatch = output.match(/\[download\] (.+?) has already been downloaded/);
                 if (alreadyDownloadedMatch) {
                     fileName = path.basename(alreadyDownloadedMatch[1].trim());
                 }
             }
-            // 下载目标的消息
+            // 下載目標的消息
             else if (!fileName) {
                 const destinationMatch = output.match(/\[download\] Destination: (.+)/);
                 if (destinationMatch) {
@@ -411,7 +411,7 @@ app.post('/execute', (req, res) => {
         
         if (currentLinkIndex < youtubeLinks.length) {
             // 開始下載下一個視頻
-            // 复制之前的参数但替换YouTube链接
+            // 複製之前的參數但替換YouTube鏈接
             const nextArgs = [...execArgs.slice(0, -1), youtubeLinks[currentLinkIndex]];
             
             const nextYtdlp = spawn(executable, nextArgs, {
@@ -484,22 +484,22 @@ app.post('/execute', (req, res) => {
     });
 });
 
-// 修改下载路由以确保强制下载
+// 修改下載路由以確保強制下載
 app.get('/downloads/:filename', (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(downloadsDir, filename);
     
-    // 检查文件是否存在
+    // 檢查文件是否存在
     if (fs.existsSync(filePath)) {
-        // 设置强制下载的头信息
+        // 設置強制下載的頭信息
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-        // 阻止缓存
+        // 阻止緩存
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
         
-        // 流式传输文件
+        // 流式傳輸文件
         const fileStream = fs.createReadStream(filePath);
         fileStream.pipe(res);
     } else {
@@ -511,7 +511,7 @@ app.get('/downloads/:filename', (req, res) => {
 // 添加文件管理API
 app.get('/files', (req, res) => {
     try {
-        // 获取下载目录中的所有文件
+        // 獲取下載目錄中的所有文件
         const files = fs.readdirSync(downloadsDir)
             .filter(file => {
                 const filePath = path.join(downloadsDir, file);
@@ -526,7 +526,7 @@ app.get('/files', (req, res) => {
                     mtime: stats.mtime
                 };
             })
-            .sort((a, b) => b.mtime - a.mtime); // 按修改时间从新到旧排序
+            .sort((a, b) => b.mtime - a.mtime); // 按修改時間從新到舊排序
         
         res.json(files);
     } catch (err) {
@@ -535,25 +535,25 @@ app.get('/files', (req, res) => {
     }
 });
 
-// 删除指定文件
+// 刪除指定文件
 app.delete('/files/:filename', (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(downloadsDir, filename);
     
     try {
-        // 检查文件是否存在
+        // 檢查文件是否存在
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'File not found' });
         }
         
-        // 检查是否为文件
+        // 檢查是否爲文件
         if (!fs.statSync(filePath).isFile()) {
             return res.status(400).json({ error: 'Not a file' });
         }
         
-        // 删除文件
+        // 刪除文件
         fs.unlinkSync(filePath);
-        console.log(`[手动删除] 文件已删除: ${filename}`);
+        console.log(`[手動刪除] 文件已刪除: ${filename}`);
         res.json({ success: true });
     } catch (err) {
         console.error(`Error deleting file ${filename}:`, err);
@@ -561,44 +561,44 @@ app.delete('/files/:filename', (req, res) => {
     }
 });
 
-// 手动触发清理
+// 手動觸發清理
 app.post('/cleanup', (req, res) => {
     try {
-        // 当前时间
+        // 當前時間
         const now = new Date().getTime();
-        // 最大文件年龄（毫秒）
+        // 最大文件年齡（毫秒）
         const maxAge = FILE_CLEANUP.maxAgeHours * 60 * 60 * 1000;
         let filesRemoved = 0;
         let spaceFreed = 0;
         
-        // 获取下载目录中的所有文件
+        // 獲取下載目錄中的所有文件
         const files = fs.readdirSync(downloadsDir);
         
         files.forEach(file => {
             const filePath = path.join(downloadsDir, file);
             
-            // 跳过目录
+            // 跳過目錄
             if (fs.statSync(filePath).isDirectory()) return;
             
-            // 获取文件状态
+            // 獲取文件狀態
             const stats = fs.statSync(filePath);
             const fileAge = now - stats.mtimeMs;
             
-            // 检查文件年龄
+            // 檢查文件年齡
             if (fileAge > maxAge) {
                 try {
                     fs.unlinkSync(filePath);
                     filesRemoved++;
                     spaceFreed += stats.size;
-                    console.log(`[手动清理] 删除文件: ${file}`);
+                    console.log(`[手動清理] 刪除文件: ${file}`);
                 } catch (err) {
-                    console.error(`[手动清理] 删除文件失败: ${file}`, err);
+                    console.error(`[手動清理] 刪除文件失敗: ${file}`, err);
                 }
             }
         });
         
         const spaceFreedMB = (spaceFreed / (1024 * 1024)).toFixed(2);
-        console.log(`[手动清理] 完成: 删除了${filesRemoved}个文件, 释放了${spaceFreedMB}MB空间`);
+        console.log(`[手動清理] 完成: 刪除了${filesRemoved}個文件, 釋放了${spaceFreedMB}MB空間`);
         
         res.json({
             success: true,
@@ -606,7 +606,7 @@ app.post('/cleanup', (req, res) => {
             spaceFreedMB
         });
     } catch (err) {
-        console.error('[手动清理] 错误:', err);
+        console.error('[手動清理] 錯誤:', err);
         res.status(500).json({ error: 'Failed to cleanup files' });
     }
 });
@@ -617,13 +617,13 @@ app.listen(PORT, () => {
     console.log(`Website available at: http://localhost:${PORT}/ytcommand.html`);
     console.log(`Downloads will be saved to: ${downloadsDir}`);
 
-    // 检查 yt-dlp 命令是否可用
+    // 檢查 yt-dlp 命令是否可用
     const checkCommand = spawn('which', ['yt-dlp']);
     checkCommand.on('close', (code) => {
         if (code !== 0) {
-            console.warn('警告: yt-dlp 命令似乎不可用。请确保它已正确安装。');
+            console.warn('警告: yt-dlp 命令似乎不可用。請確保它已正確安裝。');
         } else {
-            console.log('yt-dlp 命令可用，可以开始下载。');
+            console.log('yt-dlp 命令可用，可以開始下載。');
         }
     });
 }); 
